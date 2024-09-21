@@ -20,11 +20,11 @@ print(f"evid: {evid}")
 print(f"mq_type: {mq_type}")
 
 # Reading predictions data
-data_pred = pd.read_csv("detected_moonquakes.csv")
+data_pred = pd.read_csv("detected_moonquakes_ayden.csv")
 
 # Converting column data to lists
 name_pred = data_pred['filename'].tolist()
-time_rel_pred = data_pred['trigger_time'].tolist()
+time_rel_pred = data_pred['start_time'].tolist()
 
 # Set NaN values in time_rel_pred to 0
 time_rel_pred = [0 if pd.isna(t) else t for t in time_rel_pred]
