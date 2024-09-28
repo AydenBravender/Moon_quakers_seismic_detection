@@ -7,14 +7,22 @@ import re
 import matplotlib.pyplot as plt
 
 # Define the directory containing MiniSEED files
-data_directory = 'space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA/'
+data_directory = '/home/ayden/nasa/space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA'
 output_csv = 'detected_moonquakes_ayden.csv'
 
 # Prepare a list to store results
 results = []
 
-# Function to plot the data with moonquake vertical markers
-def plot_data(tr_times, tr_data, tr_filt_data, moonquake_start_time, filename):
+# Ground truth data (replace with your actual timestamps)
+# This is a dictionary where the filename is the key and the ground truth time is the value
+ground_truth = {
+    'example_file1.mseed': 10.5,  # Replace with actual filename and time
+    'example_file2.mseed': 15.3,  # Replace with actual filename and time
+    # Add more entries as needed
+}
+
+# Function to plot the data with moonquake vertical markers and ground truth
+def plot_data(tr_times, tr_data, tr_filt_data, moonquake_start_time, ground_truth_time, filename):
     plt.figure(figsize=(12, 6))
 
     # Plot raw data
@@ -30,7 +38,11 @@ def plot_data(tr_times, tr_data, tr_filt_data, moonquake_start_time, filename):
     
     # Plot vertical line at the detected moonquake time (if any)
     if moonquake_start_time:
-        plt.axvline(x=moonquake_start_time, color='g', linestyle='--', label=f'Moonquake @ {moonquake_start_time:.2f}s')
+        plt.axvline(x=moonquake_start_time, color='g', linestyle='--', label=f'Moonquake Detected @ {moonquake_start_time:.2f}s')
+    
+    # Plot vertical line for ground truth time (if any)
+    if ground_truth_time:
+        plt.axvline(x=ground_truth_time, color='b', linestyle='--', label=f'Ground Truth @ {ground_truth_time:.2f}s')
     
     plt.title(f"Filtered Seismic Data - {filename}")
     plt.xlabel("Time (s)")
@@ -73,7 +85,7 @@ for filename in os.listdir(data_directory):
         start_time = None
         duration = 0
         moonquake_detected = False
-        amplitude_threshold = 0.00000000001 # Adjust as needed for detection sensitivity #0.00000000001
+        amplitude_threshold = 0.00000000001 # Adjust as needed for detection sensitivity
         
         for i in range(1, len(tr_filt_data)):
             # Check if the amplitude exceeds the threshold
@@ -109,8 +121,11 @@ for filename in os.listdir(data_directory):
         else:
             print(f"No significant moonquakes detected in {filename}")
 
+        # Get ground truth time for this file if available
+        ground_truth_time = ground_truth.get(filename, None)
+
         # Plot the raw and filtered data, marking the detected moonquake with a vertical line
-        # plot_data(tr_times, tr_data, tr_filt_data, best_start_time, filename)
+        plot_data(tr_times, tr_data, tr_filt_data, best_start_time, ground_truth_time, filename)
 
 # Check if any results were added
 if len(results) > 0:
