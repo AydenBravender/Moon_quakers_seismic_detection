@@ -91,6 +91,13 @@ class SeismicPrediction:
         for i in range(len(suppressed_data)):
             suppressed_data[i] = np.mean(suppressed_data[i:i+window + 1])
         return suppressed_data
+
+    def normalize(self, arr, t_min, t_max):
+        norm_arr = []
+        for i in range(len(arr)):
+            temp = arr[i]/min(arr)
+            norm_arr.append(temp)
+        return norm_arr
     
     
     def create_high_freq(self, decay_data):
