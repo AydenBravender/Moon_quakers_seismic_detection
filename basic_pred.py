@@ -24,27 +24,55 @@ def predict(results):
     #         final_results.append(time[i])
     
     # return final_results
-    final_results = []
+
+    # --------------------------------------------------------------
+    # final_results = []
     
+    # # Extract durations and times
+    # durations = [inner_list[2] for outer_list in results for inner_list in outer_list]
+    # times = [inner_list[1] for outer_list in results for inner_list in outer_list]
+
+    # # Create a list of (duration, time) pairs and sort by duration in descending order
+    # duration_time_pairs = sorted(zip(durations, times), key=lambda x: x[0], reverse=True)
+
+    # # Append the longest duration first
+    # if duration_time_pairs:
+    #     final_results.append(duration_time_pairs[0][1])  # Append time of the longest duration
+
+    # # Now iterate through the sorted list and append valid times
+    # last_appended_time = final_results[0] if final_results else None
+    # for duration, time in duration_time_pairs[1:]:  # Skip the first since it's already added
+    #     if last_appended_time is not None and abs(time - last_appended_time) >= 20000:
+    #         final_results.append(time)
+    #         last_appended_time = time  # Update last appended time
+
+    # return final_results
+
+    final_results = []
+    new_list = []
     # Extract durations and times
     durations = [inner_list[2] for outer_list in results for inner_list in outer_list]
     times = [inner_list[1] for outer_list in results for inner_list in outer_list]
+    
+    for i in range(len(durations)):
+        if durations[i] >= 2:
+            new_list.append([durations[i], times[i]])
+    new_list = sorted(new_list, key=lambda x: x[0], reverse=True)
 
-    # Create a list of (duration, time) pairs and sort by duration in descending order
-    duration_time_pairs = sorted(zip(durations, times), key=lambda x: x[0], reverse=True)
 
-    # Append the longest duration first
-    if duration_time_pairs:
-        final_results.append(duration_time_pairs[0][1])  # Append time of the longest duration
-
-    # Now iterate through the sorted list and append valid times
-    last_appended_time = final_results[0] if final_results else None
-    for duration, time in duration_time_pairs[1:]:  # Skip the first since it's already added
-        if last_appended_time is not None and abs(time - last_appended_time) >= 20000:
-            final_results.append(time)
-            last_appended_time = time  # Update last appended time
+    final_results.append(new_list[0][1])
+    for i in range(len(new_list)):
+        n = 0
+        for j in range(len(final_results)):
+            if abs(new_list[i][1] - final_results[j]) > 20000:
+                n+=1
+        if n == len(final_results):
+            final_results.append(new_list[i][1]) 
 
     return final_results
+
+
+
 
 
 
@@ -60,7 +88,7 @@ def main():
     mseed_files = sorted([f for f in os.listdir(data_directory) if f.endswith('.mseed')])
 
     # Load event time data from CSV
-    event_time_data = pd.read_csv('apollo12_catalog_GradeA_final.csv')
+    event_time_data = pd.read_csv('//fs-059/studuser$/Gr11/a.bravender/nasa/apollo12_catalog_GradeA_final.csv')
     output = []
 
     # Process each MiniSEED file in order
@@ -103,8 +131,8 @@ def main():
 
         # # Show the plot
         # plt.show()
-
     print(output)
+    
 if __name__ == "__main__":
     main()
 
