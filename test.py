@@ -1,19 +1,20 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
-# Simple test data
-time = np.linspace(0, 10, 100)  # Time from 0 to 10 seconds
-data = np.sin(time)  # Example data: sine wave
+decay_data = np.array([1, 2, 3, 4, 5, 4, 3, 2, 1])
+threshold = 4
 
-# Create a plot
-plt.figure(figsize=(10, 6))
-plt.plot(time, data, label='Sine Wave', color='b')
-plt.title('Test Plot: Sine Wave')
-plt.xlabel('Time (s)')
-plt.ylabel('Amplitude')
-plt.axhline(0, color='k', linestyle='--', lw=0.5)  # Horizontal line at y=0
-plt.grid(True)
-plt.legend()
+potential_quakes = []
+curr_segment = []
+for i in range(len(decay_data)):
+    if decay_data[i] <= threshold:
+        curr_segment.append(decay_data[i])
+        try:
+            if decay_data[i+1] > threshold or i == len(decay_data)-1:
+                potential_quakes.append([i-len(curr_segment)+1, len(curr_segment)])
+                curr_segment = []
+        except IndexError:
+            if i == len(decay_data)-1:
+                potential_quakes.append([i-len(curr_segment)+1, len(curr_segment)])
+                curr_segment = []
 
-# Show the plot
-plt.show(block=True)  # Block until the plot is closed
+print(potential_quakes)

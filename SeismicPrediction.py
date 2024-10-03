@@ -92,15 +92,29 @@ class SeismicPrediction:
             suppressed_data[i] = np.mean(suppressed_data[i:i+window + 1])
         return suppressed_data
 
-    def normalize(self, arr, t_min, t_max):
-        norm_arr = []
-        for i in range(len(arr)):
-            temp = arr[i]/min(arr)
-            norm_arr.append(temp)
+    def normalize(self, arr):
+        """
+        Normalizes the array to a range between -1 and 0.
+
+        Parameters
+        ----------
+        arr : numpy.ndarray
+            The input data array to be normalized.
+
+        Returns
+        -------
+        numpy.ndarray
+            The normalized data.
+        """
+        min_value = np.min(arr)
+        max_value = np.max(arr)
+
+        norm_arr = (arr - max_value) / (max_value - min_value)
+
         return norm_arr
     
     
-    def create_high_freq(self, decay_data):
+    def create_high_freq(self, decay_data, threshold):
         """
         Identifies potential seismic events based on the energy decay data.
 
@@ -113,6 +127,9 @@ class SeismicPrediction:
         decay_data : numpy.ndarray
             The array of decay data from which potential seismic events are identified.
 
+        threshold : int
+            the number deciding which event are considered for a seismic event
+
         Returns
         -------
         list
@@ -121,43 +138,71 @@ class SeismicPrediction:
         """
         potential_quakes = []
         curr_segment = []
-        for i in range(len(decay_data)-1):
-            if decay_data[i] <= -0.1e-17:
+        for i in range(len(decay_data)):
+            if decay_data[i] <= threshold:
                 curr_segment.append(decay_data[i])
-                if decay_data[i+1] > -0.1e-17:
-                    potential_quakes.append([i, len(curr_segment)])
-                    curr_segment = []
+                try:
+                    if decay_data[i+1] > threshold or i == len(decay_data)-1:
+                        potential_quakes.append([i-len(curr_segment)+1, int(self.time[[i-len(curr_segment)+1]]), len(curr_segment)])
+                        curr_segment = []
+                except IndexError:
+                    if i == len(decay_data)-1:
+                        potential_quakes.append([i-len(curr_segment)+1, int(self.time[[i-len(curr_segment)+1]]), len(curr_segment)])
+                        curr_segment = []
         
         return potential_quakes
     
 
 
 def main():
-    filename = '/home/ayden/nasa/space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA/xa.s12.00.mhz.1970-07-20HR00_evid00010.mseed'
-    st = read(filename)
-    tr = st[0]  # Assuming single trace per file
-    time = np.arange(0, tr.stats.npts) * tr.stats.delta  # Create time array
+    # Directory containing the MiniSEED files
+    data_directory = 'space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA'
 
-    pred1 = SeismicPrediction(tr, time)
-    filtered_data = pred1.apply_bandpass_filter()
-    decay_data = pred1.energy_decay(filtered_data)
-    suppresed = pred1.staircase_data(decay_data, 1000)
-    print(pred1.create_high_freq(suppresed))
+    # Get a sorted list of MiniSEED filenames
+    mseed_files = sorted([f for f in os.listdir(data_directory) if f.endswith('.mseed')])
 
-    plt.ion()  # Enable interactive mode
-    plt.figure(figsize=(10, 6))
-    plt.plot(time, suppresed, color='blue', label='Energy Decay Rate')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Decay Rate')
-    plt.title('Energy Decay Over Time')
-    plt.legend()
-    plt.grid(True)  # Adds a grid for easier visualization
+    # Load event time data from CSV
+    event_time_data = pd.read_csv('apollo12_catalog_GradeA_final.csv')
 
-    # Show the plot
-    plt.show()
+    # Process each MiniSEED file in order
+    for filename in mseed_files:
+        mseed_file = os.path.join(data_directory, filename)
+        # Read the MiniSEED file using ObsPy
+        st = read(mseed_file)
+        tr = st[0]  # Assuming single trace per file
+        time = np.arange(0, tr.stats.npts) * tr.stats.delta  # Create time array
 
-    # Pause to keep the plot open
-    plt.pause(100)
+        event_id = filename.split('_')[-1].split('.')[0]  # Extract event ID
+        event_id = event_id.replace("evid", "evid")  # Maintain 'evid' prefix
+
+        # Find the row in the CSV that matches the event_id
+        matching_event = event_time_data[event_time_data['evid'] == event_id]
+
+        if not matching_event.empty:
+            event_time = matching_event['time_rel(sec)'].values[0]  # Extract the event time
+        else:
+            print(f"No matching event found for {filename}. Skipping...")
+            continue  # Skip this file if no matching event
+
+
+        pred1 = SeismicPrediction(tr, time)
+        filtered_data = pred1.apply_bandpass_filter()
+        decay_data = pred1.energy_decay(filtered_data)
+        suppresed = pred1.staircase_data(decay_data, 1000)
+        normalized = pred1.normalize(suppresed)
+        print(pred1.create_high_freq(normalized, -0.08))
+        print(event_time)
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(time, normalized, color='blue', label='Energy Decay Rate')
+        plt.xlabel('Time (s)')
+        plt.ylabel('Decay Rate')
+        plt.title('Energy Decay Over Time')
+        plt.legend()
+        plt.grid(True)  # Adds a grid for easier visualization
+
+        # Show the plot
+        plt.show()
 
 if __name__ == "__main__":
     main()
