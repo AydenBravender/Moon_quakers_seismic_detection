@@ -23,6 +23,19 @@ class SeismicPrediction:
 
     apply_bandpass_filter():
         Applies a bandpass filter as well as a median filter on raw data
+
+    energy_decay():
+        Calculates the energy decay rate from the filtered motion data
+
+    staircase_data():
+        Suppresses fluctuations in the input data by keeping the maximum value
+        within a sliding window.
+
+    normalize():
+        Normalizes the array to a range between -1 and 0.
+
+    create_high_freq():
+        Identifies potential seismic events based on the energy decay data.
     """
     def __init__(self, data, time):
         self.data = data
@@ -143,11 +156,22 @@ class SeismicPrediction:
                 curr_segment.append(decay_data[i])
                 try:
                     if decay_data[i+1] > threshold or i == len(decay_data)-1:
-                        potential_quakes.append([i-len(curr_segment)+1, int(self.time[[i-len(curr_segment)+1]]), len(curr_segment)])
+                        segment = decay_data[i-len(curr_segment)+1:i+1]
+                        average = sum(decay_data) / len(decay_data)
+                        aydens_value = (min(segment)/average)
+
+                        potential_quakes.append([i-len(curr_segment)+1, int(self.time[[i-len(curr_segment)+1]]), len(curr_segment), aydens_value])
                         curr_segment = []
                 except IndexError:
                     if i == len(decay_data)-1:
-                        potential_quakes.append([i-len(curr_segment)+1, int(self.time[[i-len(curr_segment)+1]]), len(curr_segment)])
+                        segment = decay_data[i-len(curr_segment)+1:i+1]
+                        average = sum(decay_data) / len(decay_data)
+                        aydens_value = (min(segment)/average)
+                        
+
+
+
+                        potential_quakes.append([i-len(curr_segment)+1, int(self.time[[i-len(curr_segment)+1]]), len(curr_segment), aydens_value])
                         curr_segment = []
         
         return potential_quakes
@@ -190,7 +214,7 @@ def main():
         decay_data = pred1.energy_decay(filtered_data)
         suppresed = pred1.staircase_data(decay_data, 1000)
         normalized = pred1.normalize(suppresed)
-        print(pred1.create_high_freq(normalized, -0.08))
+        print(pred1.create_high_freq(normalized, -0.02))
         print(event_time)
 
         plt.figure(figsize=(10, 6))

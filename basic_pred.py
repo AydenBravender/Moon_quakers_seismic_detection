@@ -7,55 +7,19 @@ from obspy import read  # ObsPy for handling MiniSEED files
 from obspy.signal.filter import bandpass  # Import bandpass filter from ObsPy
 from scipy.signal import medfilt  # Import median filter
 import matplotlib.pyplot as plt
+import csv
 
 
 def predict(results):
-    # final_results = []
-    # for i in range(len(results)):
-    #     duration = [inner_list[2] for outer_list in results for inner_list in outer_list]
-    #     time = [inner_list[1] for outer_list in results for inner_list in outer_list]
-    
-    # sorted_duration = duration.sort(reverse=True)
-    # sorted_time = time.sort(reverse=True)
-    # for i in range(len(sorted_duration)):
-    #     index = duration.index(sorted_duration[i])
-    #     final_results.append(time[index])
-    #     if abs(final_results[-1] - time[i]) >= 8000:
-    #         final_results.append(time[i])
-    
-    # return final_results
-
-    # --------------------------------------------------------------
-    # final_results = []
-    
-    # # Extract durations and times
-    # durations = [inner_list[2] for outer_list in results for inner_list in outer_list]
-    # times = [inner_list[1] for outer_list in results for inner_list in outer_list]
-
-    # # Create a list of (duration, time) pairs and sort by duration in descending order
-    # duration_time_pairs = sorted(zip(durations, times), key=lambda x: x[0], reverse=True)
-
-    # # Append the longest duration first
-    # if duration_time_pairs:
-    #     final_results.append(duration_time_pairs[0][1])  # Append time of the longest duration
-
-    # # Now iterate through the sorted list and append valid times
-    # last_appended_time = final_results[0] if final_results else None
-    # for duration, time in duration_time_pairs[1:]:  # Skip the first since it's already added
-    #     if last_appended_time is not None and abs(time - last_appended_time) >= 20000:
-    #         final_results.append(time)
-    #         last_appended_time = time  # Update last appended time
-
-    # return final_results
-
     final_results = []
     new_list = []
     # Extract durations and times
     durations = [inner_list[2] for outer_list in results for inner_list in outer_list]
     times = [inner_list[1] for outer_list in results for inner_list in outer_list]
+    aydens_value = [inner_list[3] for outer_list in results for inner_list in outer_list]
     
     for i in range(len(durations)):
-        if durations[i] >= 2:
+        if durations[i] >= 340 and aydens_value[i] >= 5:
             new_list.append([durations[i], times[i]])
     new_list = sorted(new_list, key=lambda x: x[0], reverse=True)
 
@@ -64,7 +28,7 @@ def predict(results):
     for i in range(len(new_list)):
         n = 0
         for j in range(len(final_results)):
-            if abs(new_list[i][1] - final_results[j]) > 20000:
+            if abs(new_list[i][1] - final_results[j]) > 5000:
                 n+=1
         if n == len(final_results):
             final_results.append(new_list[i][1]) 
@@ -82,13 +46,13 @@ def predict(results):
 
 def main():
     # Directory containing the MiniSEED files
-    data_directory = 'space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA'
+    data_directory = '/home/ayden/nasa/space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA'
 
     # Get a sorted list of MiniSEED filenames
     mseed_files = sorted([f for f in os.listdir(data_directory) if f.endswith('.mseed')])
 
     # Load event time data from CSV
-    event_time_data = pd.read_csv('//fs-059/studuser$/Gr11/a.bravender/nasa/apollo12_catalog_GradeA_final.csv')
+    event_time_data = pd.read_csv('/home/ayden/nasa/space_apps_2024_seismic_detection/data/lunar/training/catalogs/apollo12_catalog_GradeA_final.csv')
     output = []
 
     # Process each MiniSEED file in order
@@ -118,20 +82,32 @@ def main():
         suppresed = pred1.staircase_data(decay_data, 1000)
         normalized = pred1.normalize(suppresed)
         results = [pred1.create_high_freq(normalized, -0.08)]
-        output.append(predict(results))
+        final = predict(results)
+        output.append(final)
         
+        print(results)
+        # Plotting the data
+        plt.figure(figsize=(10, 6))
+        plt.plot(time, normalized, color='blue', label='Energy Decay Rate')
+        plt.xlabel(filename)
+        plt.ylabel('Decay Rate')
+        plt.title('Energy Decay Over Time')
 
-        # plt.figure(figsize=(10, 6))
-        # plt.plot(time, normalized, color='blue', label='Energy Decay Rate')
-        # plt.xlabel('Time (s)')
-        # plt.ylabel('Decay Rate')
-        # plt.title('Energy Decay Over Time')
-        # plt.legend()
-        # plt.grid(True)  # Adds a grid for easier visualization
+        # Draw vertical lines for each event in 'final'
+        for t in final:
+            plt.axvline(x=t, color='k', linestyle='--', label=f"Event at {t:.2f}s")
 
-        # # Show the plot
-        # plt.show()
-    print(output)
+        plt.axvline(x=event_time, color='r', linestyle='--', label="Catalog Event Time")  # If you still want the original event_time line
+        plt.legend()
+        plt.grid(True)  # Adds a grid for easier visualization
+
+        plt.show()
+    with open('output_seismic_predictions.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        for row in output:
+            writer.writerow(row)
+
+    print(f"Results saved to 'output_seismic_predictions.csv'.")
     
 if __name__ == "__main__":
     main()
