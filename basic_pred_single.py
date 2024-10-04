@@ -9,37 +9,12 @@ from scipy.signal import medfilt  # Import median filter
 import csv
 
 
-def predict(results):
-    final_results = []
-    new_list = []
-    # Extract durations and times
-    durations = [inner_list[2] for outer_list in results for inner_list in outer_list]
-    times = [inner_list[1] for outer_list in results for inner_list in outer_list]
-    aydens_value = [inner_list[3] for outer_list in results for inner_list in outer_list]
-    
-    for i in range(len(durations)):
-        if durations[i] >= 340 and aydens_value[i] >= 5:
-            new_list.append([durations[i], times[i]])
-    new_list = sorted(new_list, key=lambda x: x[0], reverse=True)
-
-
-    final_results.append(new_list[0][1])
-    for i in range(len(new_list)):
-        n = 0
-        for j in range(len(final_results)):
-            if abs(new_list[i][1] - final_results[j]) > 5000:
-                n+=1
-        if n == len(final_results):
-            final_results.append(new_list[i][1]) 
-
-    return final_results
-
 def main():
     # Set the path to the specific MiniSEED file you want to process
-    mseed_file = '/home/ayden/nasa/space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA/xa.s12.00.mhz.1972-07-17HR00_evid00067.mseed'
+    mseed_file = '//fs-059/studuser$/Gr11/a.bravender/nasa/space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA/xa.s12.00.mhz.1972-07-17HR00_evid00067.mseed'
     
     # Load event time data from CSV
-    event_time_data = pd.read_csv('/home/ayden/nasa/space_apps_2024_seismic_detection/data/lunar/training/catalogs/apollo12_catalog_GradeA_final.csv')
+    event_time_data = pd.read_csv('//fs-059/studuser$/Gr11/a.bravender/nasa/space_apps_2024_seismic_detection/data/lunar/training/catalogs/apollo12_catalog_GradeA_final.csv')
     output = []
 
     # Read the MiniSEED file using ObsPy
@@ -65,8 +40,8 @@ def main():
     decay_data = pred1.energy_decay(filtered_data)
     suppresed = pred1.staircase_data(decay_data, 1000)
     normalized = pred1.normalize(suppresed)
-    results = [pred1.create_high_freq(normalized, -0.08)]
-    final = predict(results)
+    results = [pred1.create_high_freq(normalized, -0.03)]
+    final = pred1.predict(results)
     output.append(final)
 
     print(results)

@@ -175,6 +175,31 @@ class SeismicPrediction:
                         curr_segment = []
         
         return potential_quakes
+
+    def predict(self, results):
+        final_results = []
+        new_list = []
+        # Extract durations and times
+        durations = [inner_list[2] for outer_list in results for inner_list in outer_list]
+        times = [inner_list[1] for outer_list in results for inner_list in outer_list]
+        aydens_value = [inner_list[3] for outer_list in results for inner_list in outer_list]
+        
+        for i in range(len(durations)):
+            if durations[i] >= 340 and aydens_value[i] >= 2.5:
+                new_list.append([durations[i], times[i]])
+        new_list = sorted(new_list, key=lambda x: x[0], reverse=True)
+
+        if new_list:
+            final_results.append(new_list[0][1])
+        for i in range(len(new_list)):
+            n = 0
+            for j in range(len(final_results)):
+                if abs(new_list[i][1] - final_results[j]) > 5000:
+                    n+=1
+            if n == len(final_results):
+                final_results.append(new_list[i][1]) 
+
+        return final_results
     
 
 
