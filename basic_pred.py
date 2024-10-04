@@ -9,19 +9,20 @@ from scipy.signal import medfilt  # Import median filter
 import matplotlib.pyplot as plt
 import csv
 
+#91, 93
     
 
 
 
 def main():
     # Directory containing the MiniSEED files
-    data_directory = '//fs-059/studuser$/Gr11/a.bravender/nasa/space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA'
+    data_directory = 'space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA'
 
     # Get a sorted list of MiniSEED filenames
     mseed_files = sorted([f for f in os.listdir(data_directory) if f.endswith('.mseed')])
 
     # Load event time data from CSV
-    event_time_data = pd.read_csv('//fs-059/studuser$/Gr11/a.bravender/nasa/space_apps_2024_seismic_detection/data/lunar/training/catalogs/apollo12_catalog_GradeA_final.csv')
+    event_time_data = pd.read_csv('space_apps_2024_seismic_detection/data/lunar/training/catalogs/apollo12_catalog_GradeA_final.csv')
     output = []
 
     # Process each MiniSEED file in order
@@ -50,7 +51,7 @@ def main():
         decay_data = pred1.energy_decay(filtered_data)
         suppresed = pred1.staircase_data(decay_data, 1000)
         normalized = pred1.normalize(suppresed)
-        results = [pred1.create_high_freq(normalized, -0.024)]
+        results = [pred1.create_high_freq(normalized, -0.03)]
         final = pred1.predict(results)
         output.append(final)
         

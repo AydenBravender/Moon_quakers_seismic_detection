@@ -160,18 +160,46 @@ class SeismicPrediction:
                         average = sum(decay_data) / len(decay_data)
                         aydens_value = (min(segment)/average)
 
-                        potential_quakes.append([i-len(curr_segment)+1, int(self.time[[i-len(curr_segment)+1]]), len(curr_segment), aydens_value])
+                        start_index =  i-len(curr_segment)+1
+                        end_index = i 
+
+                        # Select the chunk of data within the specified range
+                        chunk = self.data[start_index:end_index+1]
+
+                        # Calculate the power (P = x^2) for the chunk
+                        power = np.square(chunk)
+
+                        # Calculate average power over the duration
+                        average_power = np.mean(power)
+
+                        # Calculate total energy (E = sum(x^2)) over the duration
+                        total_energy = np.sum(power)
+
+                        potential_quakes.append([int(self.time[[i-len(curr_segment)+1]]), len(curr_segment), aydens_value, average_power, total_energy])
                         curr_segment = []
                 except IndexError:
                     if i == len(decay_data)-1:
                         segment = decay_data[i-len(curr_segment)+1:i+1]
                         average = sum(decay_data) / len(decay_data)
                         aydens_value = (min(segment)/average)
-                        
 
+                        start_index =  i-len(curr_segment)+1
+                        end_index = i 
 
+                        # Select the chunk of data within the specified range
+                        chunk = self.data[start_index:end_index+1]
 
-                        potential_quakes.append([i-len(curr_segment)+1, int(self.time[[i-len(curr_segment)+1]]), len(curr_segment), aydens_value])
+                        # Calculate the power (P = x^2) for the chunk
+                        power = np.square(chunk)
+
+                        # Calculate average power over the duration
+                        average_power = np.mean(power)
+
+                        # Calculate total energy (E = sum(x^2)) over the duration
+                        total_energy = np.sum(power)
+                    
+
+                        potential_quakes.append([int(self.time[[i-len(curr_segment)+1]]), len(curr_segment), aydens_value, average_power, total_energy])
                         curr_segment = []
         
         return potential_quakes
@@ -180,13 +208,15 @@ class SeismicPrediction:
         final_results = []
         new_list = []
         # Extract durations and times
-        durations = [inner_list[2] for outer_list in results for inner_list in outer_list]
-        times = [inner_list[1] for outer_list in results for inner_list in outer_list]
-        aydens_value = [inner_list[3] for outer_list in results for inner_list in outer_list]
+        durations = [inner_list[1] for outer_list in results for inner_list in outer_list]
+        times = [inner_list[0] for outer_list in results for inner_list in outer_list]
+        aydens_value = [inner_list[2] for outer_list in results for inner_list in outer_list]
+        power = [inner_list[3] for outer_list in results for inner_list in outer_list]
+        energy = [inner_list[4] for outer_list in results for inner_list in outer_list]
         
         for i in range(len(durations)):
             if durations[i] >= 340 and aydens_value[i] >= 2.5:
-                new_list.append([durations[i], times[i]])
+                new_list.append([durations[i], times[i], power[i], energy[i]])
         new_list = sorted(new_list, key=lambda x: x[0], reverse=True)
 
         if new_list:
@@ -203,55 +233,55 @@ class SeismicPrediction:
     
 
 
-def main():
-    # Directory containing the MiniSEED files
-    data_directory = 'space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA'
+# def main():
+#     # Directory containing the MiniSEED files
+#     data_directory = 'space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA'
 
-    # Get a sorted list of MiniSEED filenames
-    mseed_files = sorted([f for f in os.listdir(data_directory) if f.endswith('.mseed')])
+#     # Get a sorted list of MiniSEED filenames
+#     mseed_files = sorted([f for f in os.listdir(data_directory) if f.endswith('.mseed')])
 
-    # Load event time data from CSV
-    event_time_data = pd.read_csv('apollo12_catalog_GradeA_final.csv')
+#     # Load event time data from CSV
+#     event_time_data = pd.read_csv('apollo12_catalog_GradeA_final.csv')
 
-    # Process each MiniSEED file in order
-    for filename in mseed_files:
-        mseed_file = os.path.join(data_directory, filename)
-        # Read the MiniSEED file using ObsPy
-        st = read(mseed_file)
-        tr = st[0]  # Assuming single trace per file
-        time = np.arange(0, tr.stats.npts) * tr.stats.delta  # Create time array
+#     # Process each MiniSEED file in order
+#     for filename in mseed_files:
+#         mseed_file = os.path.join(data_directory, filename)
+#         # Read the MiniSEED file using ObsPy
+#         st = read(mseed_file)
+#         tr = st[0]  # Assuming single trace per file
+#         time = np.arange(0, tr.stats.npts) * tr.stats.delta  # Create time array
 
-        event_id = filename.split('_')[-1].split('.')[0]  # Extract event ID
-        event_id = event_id.replace("evid", "evid")  # Maintain 'evid' prefix
+#         event_id = filename.split('_')[-1].split('.')[0]  # Extract event ID
+#         event_id = event_id.replace("evid", "evid")  # Maintain 'evid' prefix
 
-        # Find the row in the CSV that matches the event_id
-        matching_event = event_time_data[event_time_data['evid'] == event_id]
+#         # Find the row in the CSV that matches the event_id
+#         matching_event = event_time_data[event_time_data['evid'] == event_id]
 
-        if not matching_event.empty:
-            event_time = matching_event['time_rel(sec)'].values[0]  # Extract the event time
-        else:
-            print(f"No matching event found for {filename}. Skipping...")
-            continue  # Skip this file if no matching event
+#         if not matching_event.empty:
+#             event_time = matching_event['time_rel(sec)'].values[0]  # Extract the event time
+#         else:
+#             print(f"No matching event found for {filename}. Skipping...")
+#             continue  # Skip this file if no matching event
 
 
-        pred1 = SeismicPrediction(tr, time)
-        filtered_data = pred1.apply_bandpass_filter()
-        decay_data = pred1.energy_decay(filtered_data)
-        suppresed = pred1.staircase_data(decay_data, 1000)
-        normalized = pred1.normalize(suppresed)
-        print(pred1.create_high_freq(normalized, -0.02))
-        print(event_time)
+#         pred1 = SeismicPrediction(tr, time)
+#         filtered_data = pred1.apply_bandpass_filter()
+#         decay_data = pred1.energy_decay(filtered_data)
+#         suppresed = pred1.staircase_data(decay_data, 1000)
+#         normalized = pred1.normalize(suppresed)
+#         print(pred1.create_high_freq(normalized, -0.02))
+#         print(event_time)
 
-        plt.figure(figsize=(10, 6))
-        plt.plot(time, normalized, color='blue', label='Energy Decay Rate')
-        plt.xlabel('Time (s)')
-        plt.ylabel('Decay Rate')
-        plt.title('Energy Decay Over Time')
-        plt.legend()
-        plt.grid(True)  # Adds a grid for easier visualization
+#         plt.figure(figsize=(10, 6))
+#         plt.plot(time, normalized, color='blue', label='Energy Decay Rate')
+#         plt.xlabel('Time (s)')
+#         plt.ylabel('Decay Rate')
+#         plt.title('Energy Decay Over Time')
+#         plt.legend()
+#         plt.grid(True)  # Adds a grid for easier visualization
 
-        # Show the plot
-        plt.show()
+#         # Show the plot
+#         plt.show()
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
