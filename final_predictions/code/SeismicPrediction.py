@@ -6,6 +6,11 @@ from obspy import read  # ObsPy for handling MiniSEED files
 from obspy.signal.filter import bandpass  # Import bandpass filter from ObsPy
 from scipy.signal import medfilt  # Import median filter
 import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from sklearn.metrics import classification_report
+
 
 
 class SeismicPrediction:
@@ -36,6 +41,9 @@ class SeismicPrediction:
 
     create_high_freq():
         Identifies potential seismic events based on the energy decay data.
+
+    predict():
+        Process the results and predict significant seismic events based on specified criteria
     """
     def __init__(self, data, time):
         self.data = data
@@ -119,13 +127,15 @@ class SeismicPrediction:
         numpy.ndarray
             The normalized data.
         """
+        avg_value = np.mean(arr)
         min_value = np.min(arr)
         max_value = np.max(arr)
 
-        norm_arr = (arr - max_value) / (max_value - min_value)
+        # # Normalize using the average and minimum
+        norm_arr = (arr-avg_value) / (avg_value - min_value)
 
         return norm_arr
-    
+        
     
     def create_high_freq(self, decay_data, threshold):
         """
@@ -157,8 +167,9 @@ class SeismicPrediction:
                 try:
                     if decay_data[i+1] > threshold or i == len(decay_data)-1:
                         segment = decay_data[i-len(curr_segment)+1:i+1]
-                        average = sum(decay_data) / len(decay_data)
-                        aydens_value = (min(segment)/average)
+                        average = np.mean(decay_data)
+                        # aydens_value = (min(segment)/average)
+                        aydens_value = (min(segment)/max(segment))
 
                         start_index =  i-len(curr_segment)+1
                         end_index = i 
@@ -181,7 +192,8 @@ class SeismicPrediction:
                     if i == len(decay_data)-1:
                         segment = decay_data[i-len(curr_segment)+1:i+1]
                         average = sum(decay_data) / len(decay_data)
-                        aydens_value = (min(segment)/average)
+                        # aydens_value = (min(segment)/average)
+                        aydens_value = (min(segment)/max(segment))
 
                         start_index =  i-len(curr_segment)+1
                         end_index = i 
@@ -204,7 +216,36 @@ class SeismicPrediction:
         
         return potential_quakes
 
+
     def predict(self, results):
+        """
+        Process the results and predict significant seismic events based on specified criteria.
+
+        This method processes a list of results, which contain information such as durations, times, 
+        custom 'aydens_value', power, and energy of seismic events. It filters and sorts these events 
+        to extract the most significant ones based on given thresholds, such as a minimum duration 
+        and 'aydens_value'.
+
+        Parameters:
+        -----------
+        results : list of lists
+            A nested list where each sublist contains:
+            - duration (int): The duration of the seismic event.
+            - time (int): The time at which the seismic event occurred.
+            - aydens_value (float): A custom calculated value for seismic event significance.
+            - power (float): The power of the seismic event.
+            - energy (float): The energy of the seismic event.
+
+        Returns:
+        --------
+        final_results : list of int
+            A list of times where significant seismic events occurred. Events are chosen based on 
+            the criteria that:
+            - The event duration is at least 3000 units.
+            - The 'aydens_value' is at least 3.
+            Events are sorted by duration in descending order. Only events separated by more than 
+            5000 time units are considered as separate significant events.
+        """
         final_results = []
         new_list = []
         # Extract durations and times
@@ -215,7 +256,7 @@ class SeismicPrediction:
         energy = [inner_list[4] for outer_list in results for inner_list in outer_list]
         
         for i in range(len(durations)):
-            if durations[i] >= 340 and aydens_value[i] >= 2.5:
+            if durations[i] >= 3000 and aydens_value[i] >= 3:
                 new_list.append([durations[i], times[i], power[i], energy[i]])
         new_list = sorted(new_list, key=lambda x: x[0], reverse=True)
 
@@ -231,57 +272,3 @@ class SeismicPrediction:
 
         return final_results
     
-
-
-# def main():
-#     # Directory containing the MiniSEED files
-#     data_directory = 'space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA'
-
-#     # Get a sorted list of MiniSEED filenames
-#     mseed_files = sorted([f for f in os.listdir(data_directory) if f.endswith('.mseed')])
-
-#     # Load event time data from CSV
-#     event_time_data = pd.read_csv('apollo12_catalog_GradeA_final.csv')
-
-#     # Process each MiniSEED file in order
-#     for filename in mseed_files:
-#         mseed_file = os.path.join(data_directory, filename)
-#         # Read the MiniSEED file using ObsPy
-#         st = read(mseed_file)
-#         tr = st[0]  # Assuming single trace per file
-#         time = np.arange(0, tr.stats.npts) * tr.stats.delta  # Create time array
-
-#         event_id = filename.split('_')[-1].split('.')[0]  # Extract event ID
-#         event_id = event_id.replace("evid", "evid")  # Maintain 'evid' prefix
-
-#         # Find the row in the CSV that matches the event_id
-#         matching_event = event_time_data[event_time_data['evid'] == event_id]
-
-#         if not matching_event.empty:
-#             event_time = matching_event['time_rel(sec)'].values[0]  # Extract the event time
-#         else:
-#             print(f"No matching event found for {filename}. Skipping...")
-#             continue  # Skip this file if no matching event
-
-
-#         pred1 = SeismicPrediction(tr, time)
-#         filtered_data = pred1.apply_bandpass_filter()
-#         decay_data = pred1.energy_decay(filtered_data)
-#         suppresed = pred1.staircase_data(decay_data, 1000)
-#         normalized = pred1.normalize(suppresed)
-#         print(pred1.create_high_freq(normalized, -0.02))
-#         print(event_time)
-
-#         plt.figure(figsize=(10, 6))
-#         plt.plot(time, normalized, color='blue', label='Energy Decay Rate')
-#         plt.xlabel('Time (s)')
-#         plt.ylabel('Decay Rate')
-#         plt.title('Energy Decay Over Time')
-#         plt.legend()
-#         plt.grid(True)  # Adds a grid for easier visualization
-
-#         # Show the plot
-#         plt.show()
-
-# if __name__ == "__main__":
-#     main()
