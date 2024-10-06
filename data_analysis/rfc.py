@@ -2,6 +2,11 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import os
+from sklearn.tree import plot_tree
+from sklearn.tree import export_graphviz
+import graphviz
 
 def train_random_forest(data, labels):
     """
@@ -38,6 +43,8 @@ def train_random_forest(data, labels):
 
     print(classification_report(y_test, y_pred))
     print(clf.feature_importances_)
+    
+        
 
 
     return clf  # Return the trained model
@@ -199,3 +206,34 @@ True, False, False,
 False]
     # Train the model
     model = train_random_forest(example_data, example_labels)
+    # plt.figure(figsize=(20, 10))
+    # plot_tree(model.estimators_[0], filled=True, feature_names=["time", "duration", "a", "power", "energy"], rounded=True)
+    # plt.title("First Tree in Random Forest")
+    # plt.show()
+    # importances = model.feature_importances_
+    # indices = np.argsort(importances)[::-1]
+    # # Plot the feature importances of the forest
+    # plt.figure(figsize=(10, 6))
+    # plt.title("Feature Importances")
+    # plt.bar(range(len(importances)), importances[indices], align='center')
+    # plt.xticks(range(len(importances)), np.array(["time", "duration", "a", "power", "energy"])[indices], rotation=90)
+    # plt.xlim([-1, len(importances)])
+    # plt.show()
+    # # Export the first tree to a .dot file
+    save_directory = os.path.expanduser('~/Downloads')
+    output_file_path = os.path.join(save_directory, "tree")
+
+    # Export the first tree to a .dot file
+    dot_data = export_graphviz(
+        model.estimators_[0],
+        out_file=None,
+        feature_names=["time", "duration", "a", "power", "energy"],
+        class_names=['False', 'True'],
+        filled=True,
+        rounded=True,
+        special_characters=True
+    )
+
+    # Create a Graphviz source object and render it
+    graph = graphviz.Source(dot_data)
+    graph.render(output_file_path, format='pdf')  # Saves the tree as a PDF

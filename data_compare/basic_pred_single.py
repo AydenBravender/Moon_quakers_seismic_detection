@@ -1,4 +1,4 @@
-from Moon_quakers_seismic_detection.final_predictions.code.SeismicPrediction import SeismicPrediction
+from SeismicPrediction import SeismicPrediction
 import os
 import numpy as np
 import pandas as pd
@@ -11,7 +11,7 @@ import csv
 
 def main():
     # Set the path to the specific MiniSEED file you want to process
-    mseed_file = '/home/ayden/nasa/space_apps_2024_seismic_detection/data/mars/test/data/XB.ELYSE.02.BHV.2019-05-23HR02_evid0041.mseed'
+    mseed_file = '/home/ayden/nasa/space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA/xa.s12.00.mhz.1974-04-19HR00_evid00142.mseed'
     # Load event time data from CSV
     # event_time_data = pd.read_csv('space_apps_2024_seismic_detection/data/lunar/training/catalogs/apollo12_catalog_GradeA_final.csv')
     output = []
@@ -47,7 +47,7 @@ def main():
 
     # Plotting the data
     plt.figure(figsize=(10, 6))
-    plt.plot(time, tr, color='blue', label='Energy Decay Rate')
+    plt.plot(time, normalized, color='blue', label='Energy Decay Rate')
     plt.xlabel('Time (s)')
     plt.ylabel('Decay Rate')
     plt.title(f'Energy Decay Over Time - {os.path.basename(mseed_file)}')

@@ -7,13 +7,13 @@ from obspy.signal.filter import bandpass  # Import bandpass filter from ObsPy
 from scipy.signal import medfilt  # Import median filter
 
 # Directory containing the MiniSEED files
-data_directory = 'space_apps_2024_seismic_detection/data/mars/training/data/'
+data_directory = '/home/ayden/nasa/space_apps_2024_seismic_detection/data/lunar/training/data/S12_GradeA/'
 
 # Get a sorted list of MiniSEED filenames
 mseed_files = sorted([f for f in os.listdir(data_directory) if f.endswith('.mseed')])
 
 # Load event time data from CSV
-event_time_data = pd.read_csv('space_apps_2024_seismic_detection/data/mars/training/catalogs/Mars_InSight_training_catalog_final.csv')
+event_time_data = pd.read_csv('/home/ayden/nasa/space_apps_2024_seismic_detection/data/lunar/training/catalogs/apollo12_catalog_GradeA_final.csv')
 
 # Process each MiniSEED file in order
 for filename in mseed_files:
